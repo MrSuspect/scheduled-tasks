@@ -5,34 +5,52 @@
 # 4. Update birthdays.csv to contain today's month and day.
 # See the solution video in the 100 Days of Python Course for explainations.
 
-
-from datetime import datetime
-import pandas
 import random
 import smtplib
+import datetime as dt
 import os
+import pandas
 
-# import os and use it to get the Github repository secrets
-MY_EMAIL = os.environ.get("MY_EMAIL")
-MY_PASSWORD = os.environ.get("MY_PASSWORD")
+letter_files = [
+    "letter_1.txt",
+    "letter_2.txt",
+    "letter_3.txt"
+]
 
-today = datetime.now()
-today_tuple = (today.month, today.day)
+# Secret values from environment variables
+my_email = os.environ.get("MY_EMAIL")
+password = os.environ.get("MY_PASSWORD")
 
-data = pandas.read_csv("birthdays.csv")
-birthdays_dict = {(data_row["month"], data_row["day"])                  : data_row for (index, data_row) in data.iterrows()}
-if today_tuple in birthdays_dict:
-    birthday_person = birthdays_dict[today_tuple]
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
-    with open(file_path) as letter_file:
-        contents = letter_file.read()
-        contents = contents.replace("[NAME]", birthday_person["name"])
+# Current date
+now = dt.datetime.now()
+month = now.month
+day = now.day
 
-    with smtplib.SMTP("YOUR EMAIL PROVIDER SMTP SERVER ADDRESS") as connection:
-        connection.starttls()
-        connection.login(MY_EMAIL, MY_PASSWORD)
-        connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
-        )
+# Read CSV
+birthdays = pandas.read_csv("birthdays.csv")
+
+# Check birthdays
+for index, row in birthdays.iterrows():
+
+    if row["month"] == month and row["day"] == day:
+
+        # Pick random template
+        chosen_file = random.choice(letter_files)
+
+        # Read template
+        with open(f"letter_templates/{chosen_file}") as letter_file:
+            letter_text = letter_file.read()
+
+        # Replace placeholder
+        final_letter = letter_text.replace("[NAME]", row["name"])
+
+        # Send email
+        with smtplib.SMTP("smtp.gmail.com") as connection:
+            connection.starttls()
+            connection.login(user=my_email, password=password)
+
+            connection.sendmail(
+                from_addr=my_email,
+                to_addrs=row["email"],
+                msg=f"Subject:Happy Birthday!\n\n{final_letter}"
+            )
